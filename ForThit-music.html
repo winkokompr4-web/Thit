@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- width=520 lets phone browsers fit the postcard to the screen even with JavaScript turned off -->
+<meta name="viewport" content="width=520">
+<title>For Thit Htoo San</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300;1,400&family=Jost:wght@300;400&family=Caveat:wght@400;500&display=swap">
+<style>
+  :root{
+    --backdrop:#EEE7DE;
+    --paper:#FBF7EF;
+    --ink:#4B3B36;
+    --ink-soft:#5A4A44;
+    --ink-faint:#7A6A63;
+    --mauve:#8B6F7A;
+    --plum:#6B5B73;
+    --blush:#E3B9BC;
+    --lavender:#CFC6E0;
+    --gold:#E8D9B8;
+    --s:1; /* postcard scale, fine-tuned by script when available */
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%}
+  body{
+    background:var(--backdrop);
+    font-family:'Jost',system-ui,sans-serif;
+    color:var(--ink);
+    min-height:100vh;
+    display:flex;align-items:center;justify-content:center;
+    padding:16px;
+    overflow-x:hidden;
+  }
+
+  /* the stage takes the scaled size; the card inside is always 480x720 */
+  .stage{
+    width:calc(480px * var(--s));
+    height:calc(720px * var(--s));
+    flex:none;
+    transition:transform .6s cubic-bezier(.2,.7,.2,1);
+  }
+  .stage:hover{transform:translateY(-5px) rotate(-.5deg)}
+  .card{
+    position:relative;width:480px;height:720px;
+    transform:scale(var(--s));transform-origin:top left;
+    border-radius:20px;overflow:hidden;
+    background:
+      radial-gradient(circle at 18% 10%,rgba(232,196,196,.30),transparent 46%),
+      radial-gradient(circle at 88% 92%,rgba(185,174,208,.28),transparent 46%),
+      var(--paper);
+    box-shadow:0 1px 3px rgba(75,59,54,.06),0 14px 32px rgba(75,59,54,.11),0 34px 60px rgba(75,59,54,.06);
+    transition:box-shadow .6s cubic-bezier(.2,.7,.2,1);
+  }
+  .stage:hover .card{box-shadow:0 2px 4px rgba(75,59,54,.06),0 22px 44px rgba(75,59,54,.16),0 48px 80px rgba(75,59,54,.08)}
+
+  .grain{position:absolute;left:0;top:0;opacity:.08;mix-blend-mode:multiply;pointer-events:none}
+  /* faint birthday symbols behind everything, like a watermark */
+  .wm{position:absolute;opacity:.17;pointer-events:none}
+  .wm svg{display:block;overflow:visible}
+  .frame{position:absolute;left:14px;top:14px;right:14px;bottom:14px;border:1px solid rgba(75,59,54,.12);border-radius:12px;pointer-events:none}
+
+  .content{
+    position:absolute;left:0;top:0;right:0;bottom:0;
+    display:flex;flex-direction:column;align-items:center;
+    padding:72px 56px 44px;
+  }
+  .eyebrow{font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--ink-faint)}
+  h1{
+    margin:26px 0 0;display:flex;flex-direction:column;align-items:center;
+    font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-weight:300;
+    line-height:.95;text-align:center;
+  }
+  h1 .a{font-size:58px;color:var(--mauve);letter-spacing:.01em}
+  h1 .b{font-size:92px;color:var(--ink);letter-spacing:-.01em}
+  .divider{display:flex;align-items:center;margin-top:26px}
+  .divider i{display:block;width:54px;height:1px;background:rgba(75,59,54,.22)}
+  .divider svg{display:block;margin:0 12px}
+  .message{margin:26px 0 0;max-width:290px;text-align:center;font-size:16px;line-height:1.75;font-weight:300;color:var(--ink-soft)}
+  .for{margin-top:38px;display:flex;flex-direction:column;align-items:center}
+  .for small{display:block;margin-bottom:14px;font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--ink-faint)}
+  .for .name{
+    width:230px;height:40px;border-bottom:1px solid #D9BFC4;
+    display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;
+    font-family:'Caveat',cursive;font-size:29px;color:var(--plum);
+  }
+  .spacer{flex:1}
+  .signature{font-family:'Caveat',cursive;font-size:21px;color:var(--plum);line-height:1.2;text-align:center}
+
+  /* separate music button */
+  .music-btn{
+    position:absolute;right:30px;top:620px;
+    display:flex;flex-direction:column;align-items:center;gap:6px;
+    background:none;border:0;padding:0;margin:0;cursor:pointer;
+    font:inherit;color:var(--ink-faint);
+    -webkit-tap-highlight-color:transparent;
+  }
+  .music-btn:focus-visible{outline:2px solid var(--plum);outline-offset:4px;border-radius:12px}
+  .mb-circle{
+    width:46px;height:46px;border-radius:50%;
+    background:rgba(207,198,224,.45);border:1px solid #CFC6E0;
+    display:flex;align-items:center;justify-content:center;
+    transition:background .3s ease,transform .3s ease;
+  }
+  .music-btn:hover .mb-circle{background:rgba(207,198,224,.75);transform:scale(1.05)}
+  .mb-circle svg{display:block}
+  .mb-pause{display:none}
+  .music-btn.on .mb-note{display:none}
+  .music-btn.on .mb-pause{display:block}
+  .mb-label{display:block;min-width:76px;font-size:10px;letter-spacing:.04em;line-height:1.4;text-align:center}
+
+  /* stickers */
+  .sticker{position:absolute}
+  .sticker svg{display:block;overflow:visible}
+  .float{animation:drift 6s ease-in-out infinite}
+  @keyframes drift{
+    0%,100%{transform:translateY(0) rotate(var(--r,0deg))}
+    50%{transform:translateY(-6px) rotate(calc(var(--r,0deg) + 4deg))}
+  }
+  .twinkle{animation:twinkle 3.6s ease-in-out infinite}
+  @keyframes twinkle{
+    0%,100%{opacity:.55;transform:scale(.85)}
+    50%{opacity:1;transform:scale(1.08)}
+  }
+  .confetti{position:absolute;background:var(--lavender)}
+
+  /* the wish cake: a checkbox + label, so it works with no JavaScript at all */
+  .wish-toggle{position:absolute;left:0;top:0;width:1px;height:1px;margin:0;opacity:0}
+  .cake{
+    display:flex;flex-direction:column;align-items:center;
+    padding:6px 8px;margin:0;cursor:pointer;
+    color:var(--ink-faint);border-radius:12px;
+    -webkit-tap-highlight-color:transparent;
+    -webkit-user-select:none;user-select:none;
+  }
+  .wish-toggle:focus + .cake{outline:2px solid var(--plum);outline-offset:2px}
+  .cake .art{display:block;margin-bottom:8px;transition:transform .35s ease}
+  .cake:hover .art{transform:scale(1.06)}
+  .hint{display:block;min-width:100px;font-size:10px;letter-spacing:.04em;line-height:1.55;text-align:center}
+  .hint .after{display:none}
+  .flame{transform-origin:28px 14px;animation:flicker 2.4s ease-in-out infinite;transition:opacity .5s ease}
+  @keyframes flicker{0%,100%{transform:scale(1,1)}50%{transform:scale(.92,1.08) rotate(2deg)}}
+  .smoke{opacity:0}
+  .wish-toggle:checked + .cake .flame{animation:none;opacity:0}
+  .wish-toggle:checked + .cake .smoke{animation:smoke 2.6s ease-out forwards}
+  @keyframes smoke{
+    0%{opacity:.75;transform:translateY(0)}
+    100%{opacity:0;transform:translateY(-16px)}
+  }
+  .wish-toggle:checked + .cake .hint .before{display:none}
+  .wish-toggle:checked + .cake .hint .after{display:inline}
+
+  @media (prefers-reduced-motion:reduce){
+    .stage,.card,.float,.twinkle,.flame,.cake .art{animation:none;transition:none}
+    .wish-toggle:checked + .cake .smoke{animation:none}
+  }
+</style>
+</head>
+<body>
+
+<main class="stage" id="stage">
+<div class="card">
+
+  <svg class="grain" width="480" height="720" aria-hidden="true">
+    <filter id="grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix values="0 0 0 0 0.35  0 0 0 0 0.27  0 0 0 0 0.24  0 0 0 1.4 -0.35"/>
+    </filter>
+    <rect width="480" height="720" fill="#000" filter="url(#grain)"/>
+  </svg>
+  <div class="frame"></div>
+
+  <!-- watermark: a slice of cake, a balloon, a party hat and a gift -->
+  <div class="wm" style="right:28px;top:300px;transform:rotate(8deg)">
+    <svg width="64" height="58" viewBox="0 0 80 72" aria-hidden="true" fill="none" stroke="#6B5B73" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 40L74 32V50L6 58Z" fill="#F0CDD0"/>
+      <path d="M6 49L74 41"/>
+      <path d="M6 40L50 20L74 32Z" fill="#E4DCEF"/>
+      <circle cx="46" cy="27" r="5" fill="#E3B9BC"/>
+      <path d="M46 22q1-6 6-8"/>
+      <path d="M2 63H78"/>
+    </svg>
+  </div>
+
+  <div class="wm" style="left:34px;top:392px;transform:rotate(-8deg)">
+    <svg width="58" height="96" viewBox="0 0 60 100" aria-hidden="true" fill="none" stroke="#6B5B73" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="30" cy="34" rx="22" ry="28" fill="#CFC6E0"/>
+      <path d="M26 63l4 5 4-5Z" fill="#CFC6E0"/>
+      <path d="M30 68q-9 10 0 18t0 14"/>
+      <path d="M18 24q2-8 9-10"/>
+    </svg>
+  </div>
+
+  <div class="wm" style="right:38px;top:96px;transform:rotate(14deg)">
+    <svg width="64" height="74" viewBox="0 0 70 80" aria-hidden="true" fill="none" stroke="#6B5B73" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M35 8l27 62H8Z" fill="#F0CDD0"/>
+      <path d="M22 40l30 14M16 56l38 0" />
+      <circle cx="35" cy="7" r="5" fill="#E8D9B8"/>
+      <path d="M6 72h58"/>
+    </svg>
+  </div>
+
+  <div class="wm" style="right:40px;top:540px;transform:rotate(-6deg)">
+    <svg width="72" height="72" viewBox="0 0 70 70" aria-hidden="true" fill="none" stroke="#6B5B73" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="8" y="30" width="54" height="36" rx="2" fill="#E4DCEF"/>
+      <rect x="4" y="21" width="62" height="11" rx="2" fill="#F0CDD0"/>
+      <path d="M35 21v45"/>
+      <path d="M35 21C22 4 11 14 24 21M35 21C48 4 59 14 46 21"/>
+    </svg>
+  </div>
+
+  <div class="content">
+    <div class="eyebrow">a small note</div>
+
+    <h1><span class="a">Happy</span><span class="b">Birthday</span></h1>
+
+    <div class="divider" aria-hidden="true">
+      <i></i>
+      <svg width="12" height="12" viewBox="0 0 24 24"><path d="M12 20.5C5 15.5 2.8 11.6 3.6 8.4 4.4 5.4 8.4 4.4 10.6 7c.6.7 1.1 1.3 1.4 1.9.4-.7.9-1.2 1.5-1.8 2.3-2.5 6.3-1.5 7 1.6.7 3.2-1.6 6.9-8.5 11.8Z" fill="#E3B9BC"/></svg>
+      <i></i>
+    </div>
+
+    <p class="message">I hope this year brings you closer to everything you've been dreaming of.<br>May you always find a reason to smile, even on <em>ordinary</em> days.<br>You deserve a little extra happiness<br><em>today and always</em>.</p>
+
+    <div class="for">
+      <small>for</small>
+      <div class="name"><strong>Thit Htoo San</strong></div>
+    </div>
+
+    <div class="spacer"></div>
+    <div class="signature">wishing you good things.<br>yours, quietly</div>
+  </div>
+
+  <!-- stickers sit in the margins, clear of text -->
+  <div class="sticker float" style="left:36px;top:34px;--r:-12deg;animation-duration:7s">
+    <svg width="50" height="36" viewBox="0 0 48 34" aria-hidden="true">
+      <path d="M24 16C17 3.5 4 5.5 5 15c1 9.5 12 9.5 19 1Z" fill="#CFC6E0" stroke="#6B5B73" stroke-width="1.3" stroke-linejoin="round"/>
+      <path d="M24 16c7-12.5 20-10.5 19-1-1 9.5-12 9.5-19 1Z" fill="#CFC6E0" stroke="#6B5B73" stroke-width="1.3" stroke-linejoin="round"/>
+      <path d="M23 19c-3 7-6 10-9 12M25 19c3 7 6 10 9 12" fill="none" stroke="#6B5B73" stroke-width="1.3" stroke-linecap="round"/>
+      <rect x="20.5" y="12.5" width="7" height="7.5" rx="3" fill="#EBC9CC" stroke="#6B5B73" stroke-width="1.3"/>
+    </svg>
+  </div>
+
+  <div class="sticker twinkle" style="right:50px;top:56px;animation-delay:.4s">
+    <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1c.8 5.5 3.5 8.2 9 9-5.5.8-8.2 3.5-9 9-.8-5.5-3.5-8.2-9-9 5.5-.8 8.2-3.5 9-9Z" fill="#E8D9B8" stroke="#8A7550" stroke-width="1" stroke-linejoin="round"/></svg>
+  </div>
+
+  <div class="sticker float" style="right:40px;top:196px;--r:12deg;animation-duration:6.4s;animation-delay:.8s">
+    <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5C5 15.5 2.8 11.6 3.6 8.4 4.4 5.4 8.4 4.4 10.6 7c.6.7 1.1 1.3 1.4 1.9.4-.7.9-1.2 1.5-1.8 2.3-2.5 6.3-1.5 7 1.6.7 3.2-1.6 6.9-8.5 11.8Z" fill="#EBC3C6" stroke="#6B4A50" stroke-width="1.2" stroke-linejoin="round"/></svg>
+  </div>
+
+  <div class="sticker twinkle" style="left:46px;top:232px;animation-delay:1.2s">
+    <svg width="14" height="14" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1c.8 5.5 3.5 8.2 9 9-5.5.8-8.2 3.5-9 9-.8-5.5-3.5-8.2-9-9 5.5-.8 8.2-3.5 9-9Z" fill="#CFC6E0" stroke="#6B5B73" stroke-width="1.1" stroke-linejoin="round"/></svg>
+  </div>
+
+  <div class="sticker float" style="left:44px;top:352px;--r:-10deg;animation-duration:7.4s;animation-delay:.2s">
+    <svg width="19" height="19" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5C5 15.5 2.8 11.6 3.6 8.4 4.4 5.4 8.4 4.4 10.6 7c.6.7 1.1 1.3 1.4 1.9.4-.7.9-1.2 1.5-1.8 2.3-2.5 6.3-1.5 7 1.6.7 3.2-1.6 6.9-8.5 11.8Z" fill="#CFC6E0" stroke="#6B5B73" stroke-width="1.3" stroke-linejoin="round"/></svg>
+  </div>
+
+  <div class="sticker float" style="right:54px;top:452px;--r:8deg;animation-duration:6.8s;animation-delay:1.4s">
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5C5 15.5 2.8 11.6 3.6 8.4 4.4 5.4 8.4 4.4 10.6 7c.6.7 1.1 1.3 1.4 1.9.4-.7.9-1.2 1.5-1.8 2.3-2.5 6.3-1.5 7 1.6.7 3.2-1.6 6.9-8.5 11.8Z" fill="#EBC3C6" stroke="#6B4A50" stroke-width="1.4" stroke-linejoin="round"/></svg>
+  </div>
+
+  <!-- wish cake: tap once the wish is made (no JavaScript needed) -->
+  <div class="sticker float" style="left:20px;top:532px;--r:-5deg;animation-duration:8s;animation-delay:.6s">
+    <input class="wish-toggle" type="checkbox" id="wish" aria-label="Wish made: blow out the candle">
+    <label class="cake" for="wish">
+      <svg class="art" width="70" height="80" viewBox="0 0 56 64" aria-hidden="true">
+        <path class="smoke" d="M28 11c-3-3 3-5 0-8s3-4 0-7" fill="none" stroke="#9A8A92" stroke-width="1.3" stroke-linecap="round"/>
+        <path class="flame" d="M28 3c3.5 4.5 3.5 8.5 0 11-3.5-2.5-3.5-6.5 0-11Z" fill="#EBC9A8" stroke="#8A6A4A" stroke-width="1.1" stroke-linejoin="round"/>
+        <path d="M28 14v13" stroke="#6B4A50" stroke-width="1.4" stroke-linecap="round"/>
+        <path d="M11 29h34v11H11Z" fill="#E4DCEF" stroke="#6B5B73" stroke-width="1.3" stroke-linejoin="round"/>
+        <path d="M11 33q3.5 5 7 0t7 0 7 0 7 0 6 0" fill="none" stroke="#6B5B73" stroke-width="1.1" stroke-linecap="round"/>
+        <path d="M6 40h44v17H6Z" fill="#F0CDD0" stroke="#6B4A50" stroke-width="1.3" stroke-linejoin="round"/>
+        <path d="M2 59h52" stroke="#6B4A50" stroke-width="1.3" stroke-linecap="round"/>
+      </svg>
+      <span class="hint">
+        <span class="before">Click Here After<br>Making A Wish</span>
+        <span class="after">May It<br>Come True</span>
+      </span>
+    </label>
+  </div>
+
+  <div class="sticker twinkle" style="right:56px;top:586px;animation-delay:2s">
+    <svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1c.8 5.5 3.5 8.2 9 9-5.5.8-8.2 3.5-9 9-.8-5.5-3.5-8.2-9-9 5.5-.8 8.2-3.5 9-9Z" fill="#E8D9B8" stroke="#8A7550" stroke-width="1.1" stroke-linejoin="round"/></svg>
+  </div>
+
+  <!-- music button: separate from the cake -->
+  <button class="music-btn" id="music-btn" type="button" aria-pressed="false" aria-label="Play birthday music">
+    <span class="mb-circle">
+      <svg class="mb-note" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#6B5B73" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 18V6l10-2v12"/>
+        <circle cx="6.5" cy="18" r="2.5" fill="#E4DCEF"/>
+        <circle cx="16.5" cy="16" r="2.5" fill="#E4DCEF"/>
+      </svg>
+      <svg class="mb-pause" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="#E4DCEF" stroke="#6B5B73" stroke-width="1.8" stroke-linejoin="round">
+        <rect x="6" y="5" width="4" height="14" rx="1"/>
+        <rect x="14" y="5" width="4" height="14" rx="1"/>
+      </svg>
+    </span>
+    <span class="mb-label" id="mb-label">Play Music</span>
+  </button>
+
+  <!-- sparse confetti -->
+  <div class="confetti float" style="left:92px;top:150px;width:5px;height:5px;border-radius:50%;animation-duration:9s"></div>
+  <div class="confetti float" style="right:92px;top:132px;width:11px;height:3px;border-radius:2px;background:#E3B9BC;--r:35deg;animation-duration:8.5s;animation-delay:1s"></div>
+  <div class="confetti float" style="left:96px;top:440px;width:10px;height:3px;border-radius:2px;--r:-30deg;animation-duration:9.5s;animation-delay:.5s"></div>
+  <div class="confetti float" style="right:96px;top:384px;width:5px;height:5px;border-radius:50%;background:#E3B9BC;animation-duration:8s;animation-delay:2s"></div>
+  <div class="confetti float" style="left:170px;top:520px;width:4px;height:4px;border-radius:50%;background:#E8D9B8;animation-duration:10s;animation-delay:1.5s"></div>
+
+</div>
+</main>
+
+<script>
+  // optional: fine-tune the fit on very wide or very short screens
+  (function () {
+    try {
+      var root = document.documentElement;
+      function fit() {
+        var s = Math.min(1, (window.innerWidth - 32) / 480, (window.innerHeight - 32) / 720);
+        root.style.setProperty('--s', Math.max(s, 0.3).toFixed(4));
+      }
+      fit();
+      window.addEventListener('resize', fit);
+    } catch (e) {}
+  })();
+</script>
+<script>
+  // soft music-box birthday tune, played by the browser itself (no audio file needed)
+  (function () {
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      var btn = document.getElementById('music-btn');
+      var label = document.getElementById('mb-label');
+      if (!AC || !btn) return;
+
+      var ctx = null, current = null, endTimer = null;
+      var BEAT = 60 / 80;
+      var N = { G4: 392.00, A4: 440.00, B4: 493.88, C5: 523.25, D5: 587.33, E5: 659.25, F5: 698.46, G5: 783.99, C4: 261.63, E4: 329.63 };
+      var tune = [
+        ['G4', .75], ['G4', .25], ['A4', 1], ['G4', 1], ['C5', 1], ['B4', 2],
+        ['G4', .75], ['G4', .25], ['A4', 1], ['G4', 1], ['D5', 1], ['C5', 2],
+        ['G4', .75], ['G4', .25], ['G5', 1], ['E5', 1], ['C5', 1], ['B4', 1], ['A4', 1],
+        ['F5', .75], ['F5', .25], ['E5', 1], ['C5', 1], ['D5', 1], ['C5', 3]
+      ];
+      // each partial: frequency multiple, loudness, how fast it fades
+      var partials = [[1, 1, 1.6], [2, .35, 3.2], [3.01, .12, 5]];
+
+      function setUi(on) {
+        btn.className = on ? 'music-btn on' : 'music-btn';
+        btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        btn.setAttribute('aria-label', on ? 'Pause birthday music' : 'Play birthday music');
+        label.textContent = on ? 'Pause Music' : 'Play Music';
+      }
+
+      function play() {
+        if (!ctx) ctx = new AC();
+        if (ctx.state === 'suspended' && ctx.resume) ctx.resume();
+
+        var master = ctx.createGain();
+        master.gain.value = 0.32;
+        master.connect(ctx.destination);
+
+        // gentle echo
+        var delay = ctx.createDelay(1);
+        delay.delayTime.value = 0.28;
+        var feedback = ctx.createGain();
+        feedback.gain.value = 0.3;
+        var wet = ctx.createGain();
+        wet.gain.value = 0.4;
+        master.connect(delay);
+        delay.connect(feedback);
+        feedback.connect(delay);
+        delay.connect(wet);
+        wet.connect(ctx.destination);
+
+        var oscs = [];
+        function note(freq, when, vel) {
+          partials.forEach(function (p) {
+            var o = ctx.createOscillator();
+            var g = ctx.createGain();
+            o.type = 'sine';
+            o.frequency.value = freq * p[0];
+            g.gain.setValueAtTime(0, when);
+            g.gain.linearRampToValueAtTime(p[1] * vel, when + 0.005);
+            g.gain.setTargetAtTime(0, when + 0.005, 1 / p[2]);
+            o.connect(g);
+            g.connect(master);
+            o.start(when);
+            o.stop(when + 3);
+            oscs.push(o);
+          });
+        }
+
+        var t = ctx.currentTime + 0.1, beats = 0;
+        tune.forEach(function (n) {
+          note(N[n[0]], t + beats * BEAT, n[1] >= 1 ? 0.9 : 0.7);
+          beats += n[1];
+        });
+        // soft low notes at the start of each line
+        [0, 6, 12, 18].forEach(function (b) { note(N.C4, t + b * BEAT, 0.35); });
+        // closing chord
+        ['C4', 'E4', 'G4'].forEach(function (k) { note(N[k], t + beats * BEAT, 0.28); });
+
+        current = { master: master, oscs: oscs };
+        endTimer = setTimeout(function () { stop(); }, (beats * BEAT + 3.5) * 1000);
+      }
+
+      function stop() {
+        clearTimeout(endTimer);
+        setUi(false);
+        if (!current) return;
+        var c = current;
+        current = null;
+        try { c.master.gain.setTargetAtTime(0, ctx.currentTime, 0.05); } catch (e) {}
+        setTimeout(function () {
+          c.oscs.forEach(function (o) { try { o.stop(); } catch (e) {} });
+          try { c.master.disconnect(); } catch (e) {}
+        }, 400);
+      }
+
+      btn.addEventListener('click', function () {
+        try {
+          if (current) { stop(); }
+          else { play(); setUi(true); }
+        } catch (e) {}
+      });
+    } catch (e) {}
+  })();
+</script>
+</body>
+</html>
